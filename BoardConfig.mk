@@ -82,7 +82,7 @@ BOARD_MKBOOTIMG_ARGS := --ramdisk_offset 0x01000000 --tags_offset 0x00000100
 TARGET_KERNEL_CLANG_COMPILE := true
 TARGET_KERNEL_HEADER_ARCH := arm64
 TARGET_KERNEL_CONFIG := albus_defconfig
-TARGET_KERNEL_SOURCE := kernel/motorola/msm8953
+TARGET_KERNEL_SOURCE := kernel/motorola/albus
 
 # Audio
 AUDIO_FEATURE_ENABLED_ALAC_OFFLOAD := true
@@ -139,7 +139,15 @@ BOARD_USES_QCNE := true
 # Crypto
 TARGET_HW_DISK_ENCRYPTION := true
 
-WITH_DEXPREOPT := true
+# Enable dexpreopt to speed boot time
+ifeq ($(HOST_OS),linux)
+  ifneq ($(TARGET_BUILD_VARIANT),eng)
+    ifeq ($(WITH_DEXPREOPT),)
+      WITH_DEXPREOPT := true
+      WITH_DEXPREOPT_BOOT_IMG_AND_SYSTEM_SERVER_ONLY := true
+    endif
+  endif
+endif
 
 # Display
 BOARD_USES_ADRENO := true
@@ -159,6 +167,9 @@ MAX_VIRTUAL_DISPLAY_DIMENSION := 4096
 TARGET_FORCE_HWC_FOR_VIRTUAL_DISPLAYS := true
 VSYNC_EVENT_PHASE_OFFSET_NS := 2000000
 SF_VSYNC_EVENT_PHASE_OFFSET_NS := 6000000
+
+# exfat
+TARGET_EXFAT_DRIVER := exfat
 
 # FM
 BOARD_HAVE_QCOM_FM := true
@@ -211,6 +222,9 @@ LZMA_RAMDISK_TARGETS := recovery
 # SELinux
 include device/qcom/sepolicy/sepolicy.mk
 BOARD_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy
+
+# Shim
+TARGET_LD_SHIM_LIBS := /system/vendor/bin/adspd|libshim_adsp.so:/system/vendor/lib64/libmdmcutback.so|libqsap_shim.so:/system/lib/libYuvSkia.so|libshim_skia.so
 
 # Wifi
 BOARD_HAS_QCOM_WLAN              := true
