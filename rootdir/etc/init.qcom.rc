@@ -28,9 +28,8 @@
 import /system/vendor/etc/init/hw/init.mmi.rc
 
 on early-init
-    mount tracefs tracefs /sys/kernel/tracing
-    chmod 0755 /sys/kernel/tracing
-    restorecon --recursive /sys/kernel/tracing
+    mount debugfs debugfs /sys/kernel/debug
+    chmod 0755 /sys/kernel/debug
     mkdir /firmware 0771 system system
     mkdir /system 0777 root root
     symlink /data/tombstones /tombstones
@@ -766,7 +765,7 @@ service iprenew_wigig0 /system/bin/dhcpcd -n
     oneshot
 
 on property:ro.hw.dtv=true
-    insmod /system/lib/modules/isdbt.ko
+    insmod /system/vendor/lib/modules/isdbt.ko
 
 service wlan_logging /system/bin/cnss_diag -q -f
     class main
@@ -831,10 +830,6 @@ service fm_dl /vendor/bin/init.qti.fm.sh
     group system
     disabled
     oneshot
-
-on property:crypto.driver.load=1
-     insmod /system/lib/modules/qce.ko
-     insmod /system/lib/modules/qcedev.ko
 
 service atfwd /system/vendor/bin/ATFWD-daemon
     class late_start
@@ -951,8 +946,9 @@ on property:sys.boot_completed=1
     write /sys/module/lpm_levels/parameters/sleep_disabled 0
 
     # SMP scheduler
-    write /proc/sys/kernel/sched_upmigrate 100
-    write /proc/sys/kernel/sched_downmigrate 100
+    write /proc/sys/kernel/sched_downmigrate 85
+    write /proc/sys/kernel/sched_upmigrate 85
+    write /proc/sys/kernel/sched_upmigrate_min_nice 19
 
     # Enable sched guided freq control
     write /sys/devices/system/cpu/cpufreq/interactive/use_sched_load 1

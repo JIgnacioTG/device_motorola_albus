@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2017 The LineageOS Project
+ * Copyright (c) 2015 The CyanogenMod Project
+ * Copyright (C) 2017 The LineageOS Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,34 +26,35 @@ import org.lineageos.settings.device.LineageActionsSettings;
 import org.lineageos.settings.device.SensorAction;
 import org.lineageos.settings.device.SensorHelper;
 
-public class GlanceSensor implements ScreenStateNotifier {
-    private static final String TAG = "LineageActions-GlanceSensor";
+public class FlatUpSensor implements ScreenStateNotifier {
+    private static final String TAG = "LineageActions-FlatUpSensor";
 
     private final LineageActionsSettings mLineageActionsSettings;
     private final SensorHelper mSensorHelper;
     private final SensorAction mSensorAction;
-    
-    private final Sensor mSensor;
-    private final Sensor mApproachSensor;
+    private final Sensor mFlatUpSensor;
+    private final Sensor mStowSensor;
 
     private boolean mEnabled;
+    private boolean mIsStowed;
+    private boolean mLastFlatUp;
 
-    public GlanceSensor(LineageActionsSettings lineageActionsSettings, SensorHelper sensorHelper,
+    public FlatUpSensor(LineageActionsSettings LineageActionsSettings, SensorHelper sensorHelper,
                 SensorAction action) {
-        mLineageActionsSettings = lineageActionsSettings;
+        mLineageActionsSettings = LineageActionsSettings;
         mSensorHelper = sensorHelper;
         mSensorAction = action;
 
-        mSensor = sensorHelper.getGlanceSensor();
-        mApproachSensor = sensorHelper.getApproachGlanceSensor();
+        mFlatUpSensor = sensorHelper.getFlatUpSensor();
+        mStowSensor = sensorHelper.getStowSensor();
     }
 
     @Override
     public void screenTurnedOn() {
         if (mEnabled) {
             Log.d(TAG, "Disabling");
-            mSensorHelper.unregisterListener(mGlanceListener);
-            mSensorHelper.unregisterListener(mApproachGlanceListener);
+            mSensorHelper.unregisterListener(mFlatUpListener);
+            mSensorHelper.unregisterListener(mStowListener);
             mEnabled = false;
         }
     }
@@ -61,17 +63,24 @@ public class GlanceSensor implements ScreenStateNotifier {
     public void screenTurnedOff() {
         if (mLineageActionsSettings.isPickUpEnabled() && !mEnabled) {
             Log.d(TAG, "Enabling");
-            mSensorHelper.registerListener(mSensor, mGlanceListener);
-            mSensorHelper.registerListener(mSensor, mApproachGlanceListener);
+            mSensorHelper.registerListener(mFlatUpSensor, mFlatUpListener);
+            mSensorHelper.registerListener(mStowSensor, mStowListener);
             mEnabled = true;
         }
     }
 
-    private SensorEventListener mGlanceListener = new SensorEventListener() {
+    private SensorEventListener mFlatUpListener = new SensorEventListener() {
         @Override
         public synchronized void onSensorChanged(SensorEvent event) {
-            Log.d(TAG, "Changed");
-            mSensorAction.action();
+            boolean thisFlatUp = (event.values[0] != 0);
+
+            Log.d(TAG, "event: " + thisFlatUp + " mLastFlatUp=" + mLastFlatUp + " mIsStowed=" +
+                mIsStowed);
+
+            if (mLastFlatUp && ! thisFlatUp && ! mIsStowed) {
+                mSensorAction.action();
+            }
+            mLastFlatUp = thisFlatUp;
         }
 
         @Override
@@ -79,11 +88,10 @@ public class GlanceSensor implements ScreenStateNotifier {
         }
     };
 
-    private SensorEventListener mApproachGlanceListener = new SensorEventListener() {
+    private SensorEventListener mStowListener = new SensorEventListener() {
         @Override
         public synchronized void onSensorChanged(SensorEvent event) {
-            Log.d(TAG, "Approach: Changed");
-            mSensorAction.action();
+            mIsStowed = (event.values[0] != 0);
         }
 
         @Override
